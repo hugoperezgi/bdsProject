@@ -134,7 +134,7 @@ huh:
             
             switch (rand()%8){
                 case 0:
-                    this->lifeSpan*=1+(0.015+0.005*(rand()%5)); 
+                    this->lifeSpan<DEFAULT_MAXLIFESPAN? this->lifeSpan*=1+(0.015+0.005*(rand()%5)) : this->lifeSpan*=1-(0.015+0.005*(rand()%5)); 
                     break;
                 case 1:
                     this->replicationChance>=MAX_RCHANCE? this->replicationChance*=1-(0.015+0.005*(rand()%5)) : this->replicationChance*=1+(0.015+0.005*(rand()%5)); 

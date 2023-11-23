@@ -8,14 +8,14 @@
 
 #include "sim.cpp"
 
-void runSimulation(uint8_t id){
+void runSimulation(uint8_t id, uint16_t it){
     
     std::cout << "Initiating simulation "<< std::to_string(id) << "\n";
 
     srand(time(NULL)); 
     sim simulation(id);
 
-    simulation.runSimulation(25000);
+    simulation.runSimulation(it);
 
     simulation.getResults();
     simulation.getCompactResults();
@@ -31,14 +31,23 @@ int main(int argc, char const *argv[]){
 
 
     uint8_t threadCount=0;
+    uint16_t it=0;
 
-    if (argc == 2){
+    if (argc == 2){ // threads iterations
         std::string input = argv[1];
         if(strtod(argv[1],NULL)>255){
             std::cout << "Fuck no\n";
             return -1;
         }
         threadCount = (uint8_t) strtod(argv[1],NULL);
+    }else if( argc==3 ){
+        std::string input = argv[1];
+        if(strtod(argv[1],NULL)>255){
+            std::cout << "Fuck no\n";
+            return -1;
+        }
+        threadCount = (uint8_t) strtod(argv[1],NULL);
+        it = (uint16_t) strtod(argv[2],NULL);
     }else if( argc==1 ){
         threadCount=10;
     }else{
@@ -47,11 +56,12 @@ int main(int argc, char const *argv[]){
     }
 
     if(threadCount==0){return -1;}
+    if(it==0){it=25000;}
 
     std::thread simThreads[threadCount];
 
     for (uint8_t i = 0; i < threadCount; i++){
-        simThreads[i]= std::thread(runSimulation,i);
+        simThreads[i]= std::thread(runSimulation,i,it);
     }
     
     for (uint8_t i = 0; i < threadCount; i++){
