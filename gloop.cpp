@@ -29,6 +29,7 @@ class gloop{
         glpPos gloop_Coords;
 
         static uint32_t speciesCount;
+        uint32_t gloopId;
         uint32_t species;
         uint32_t parentSpecies;
 
@@ -83,6 +84,7 @@ gloop::gloop(){
     this->trait[3]=DEFAULT_FOODBONUS;  //Food Bonus   
     this->trait[4]=DEFAULT_HUNGERDEF;  //Hunger Deficit
 
+    this->gloopId=rand();
     this->species=0;
     gloop::speciesCount=0;
 }
@@ -98,6 +100,7 @@ gloop::gloop(const gloop& g){
     this->mutationChance=g.mutationChance;
     this->species=g.species;
     this->parentSpecies=g.parentSpecies;
+    this->gloopId=rand();
 
     this->gloop_Coords=glpPos(g.gloop_Coords);
     
@@ -252,9 +255,13 @@ bool gloop::checkDeathChance(long gloops){
     if((dc>=100) || (dc+oc >= 100)){return true;}else{return this->checkChance(dc+oc);}
 }
 
+#ifndef FOOD_THRESHOLD
+    #define FOOD_THRESHOLD 75
+#endif
+
 bool gloop::checkReplicationChance(){
     float fP=0; 
-    this->food >= 75 ? fP=(float)this->trait[3]/100 : fP=-(float)this->trait[4]/100;
+    this->food >= FOOD_THRESHOLD ? fP=(float)this->trait[3]/100 : fP=-(float)this->trait[4]/100;
     float rC = (this->replicationChance) * (1+fP);
     return this->checkChance((uint8_t)rC);
 }

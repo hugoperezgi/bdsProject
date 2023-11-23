@@ -12,11 +12,15 @@
 // }
 
 bool isGloopDed (const gloop& g) { return (!g.alive); }
+bool randomizeGloopOrder(const gloop& g, const gloop& o){return (g.gloopId <= o.gloopId);}
 bool isLstEpty(const std::list<gloop> l){ return l.empty();}
 bool arrangeSpecies(const std::list<gloop> l1, const std::list<gloop> l2){
     std::list<gloop>::const_iterator it1 = l1.begin();
     std::list<gloop>::const_iterator it2=l2.begin();
     return ((*it1).species < (*it2).species);
+}
+bool randomizeSpecies(const std::list<gloop> l1, const std::list<gloop> l2){
+    return (rand()%2==0);
 }
 bool sortDistances(const glpPos& f1, const glpPos& f2){
     return (f1.distance < f2.distance);
@@ -105,13 +109,17 @@ void sim::addMoreGloops(gloop parent){
 
     addNewSpecies(g);
 }
+ 
+#ifndef precGLOOP_THRESHOLD
+    #define precGLOOP_THRESHOLD 20
+#endif
 
 void sim::gloopSpawner(gloop g){
 
     g.setRandomPosition();
 
     float r;
-    this->gloopCount>20 ? r=1 : r = ((float)this->gloopCount/100);
+    this->gloopCount>precGLOOP_THRESHOLD ? r=1 : r = ((float)this->gloopCount/(2*precGLOOP_THRESHOLD));
      
     if(r==1 || ((rand()%101)*(1+r) >= 100)){return;}
 
@@ -119,7 +127,6 @@ void sim::gloopSpawner(gloop g){
         this->it = (*this->it_pGloop).begin();
         if(g.getSpecies()==((*this->it).getSpecies())){(*it_pGloop).emplace_back(g);return;}
     }
-
     addNewSpecies(g);
 }
 
@@ -128,6 +135,10 @@ void sim::addNewSpecies(gloop g){
     sGloop.emplace_front(g);
     pGloop.insert(it_pGloop,sGloop);
 }
+
+#ifndef REPORT_PERIOD
+    #define REPORT_PERIOD 1000
+#endif
 
 void sim::runSimulation(uint32_t maxTime){
 
@@ -145,6 +156,7 @@ void sim::runSimulation(uint32_t maxTime){
                 this->gloopDoYourThingy();
 
             }
+            (*it_pGloop).sort(randomizeGloopOrder);
         }
 
         this->removeded();
@@ -155,13 +167,15 @@ void sim::runSimulation(uint32_t maxTime){
             break;}
 
         gloopSpawner(newSpawn);
+
+        pGloop.sort(randomizeSpecies);
         
         float prc=(float)simTime/maxTime *100;
         std::cout << std::to_string((int)prc) << "%\n";
 
         simTime++;
 
-        if(simTime%1000==0) this->getReport(simTime/1000);
+        if(simTime%REPORT_PERIOD==0) this->getReport(simTime/REPORT_PERIOD);
 
     }while(simTime!=maxTime);
 
@@ -188,8 +202,13 @@ void sim::gloopDoYourThingy(){
 
     }
 }
-#ifndef DEFAULT_FOODCHANCE 5
-#ifndef DEFAULT_BONUSFOOD 20
+
+#ifndef DEFAULT_FOODCHANCE
+    #define DEFAULT_FOODCHANCE 5
+#endif
+#ifndef DEFAULT_BONUSFOOD
+    #define DEFAULT_BONUSFOOD 20
+#endif
 void sim::generateFood(){
     for (uint8_t i = 0; i < PLAYGROUND_SIZE_X; i++){
         for (uint8_t j = 0; j < PLAYGROUND_SIZE_Y; j++){
@@ -294,6 +313,7 @@ void sim::goYum(){
     }
     
     uint8_t tXH=0, tXL=0, tYH=0, tYL=0, fov=(*it).getRangeOfVision();
+    if(r<fov) fov=r;
     gPos.gX >= PLAYGROUND_SIZE_X-fov ? tXH=PLAYGROUND_SIZE_X : tXH=gPos.gX+fov;
     gPos.gX <= fov ? tXL=0 : tXL=gPos.gX-fov;
     gPos.gY >= PLAYGROUND_SIZE_Y-fov ? tYH=PLAYGROUND_SIZE_Y : tYH=gPos.gY+fov;
@@ -314,6 +334,54 @@ void sim::goYum(){
         }
     }
 
+
+    if(rFood1.empty() && rFood3.empty()){
+        do{
+
+            switch(rand()%4){
+                case 0:
+                    gPos.gX == PLAYGROUND_SIZE_X ? gPos.gX-- : gPos.gX++;
+                    break;
+                case 1:
+                    gPos.gX == 0 ? gPos.gX++ : gPos.gX--;
+                    break;
+                case 2:
+                    gPos.gY == PLAYGROUND_SIZE_Y ? gPos.gY-- : gPos.gY++;
+                    break;
+                case 3:
+                    gPos.gY == 0 ? gPos.gY++ : gPos.gY--;
+                    break;
+            }
+
+            if(this->food[gPos.gX][gPos.gY]==3){
+
+                if(food==75){
+                    this->food[gPos.gX][gPos.gY] = 1;
+                    food=100;
+                }else{
+                    this->food[gPos.gX][gPos.gY] = 0;
+                    food+=50;
+                }
+                    
+            }else if(this->food[gPos.gX][gPos.gY]==1){
+                if(food==75){
+                    this->food[gPos.gX][gPos.gY] = 0;
+                    food=100;
+                }else{
+                    this->food[gPos.gX][gPos.gY] = 0;
+                    food+=25;
+                }
+            }
+
+            if(food>=100){
+                goto end;
+            }
+            --r;
+        }while(r>0);
+        goto end;
+    }
+    
+    
     if(rFood1.empty() && rFood3.empty()){
         do{
 
@@ -411,6 +479,48 @@ void sim::goYum(){
         
     }
 
+    do{
+
+        switch(rand()%4){
+            case 0:
+                gPos.gX == PLAYGROUND_SIZE_X ? gPos.gX-- : gPos.gX++;
+                break;
+            case 1:
+                gPos.gX == 0 ? gPos.gX++ : gPos.gX--;
+                break;
+            case 2:
+                gPos.gY == PLAYGROUND_SIZE_Y ? gPos.gY-- : gPos.gY++;
+                break;
+            case 3:
+                gPos.gY == 0 ? gPos.gY++ : gPos.gY--;
+                break;
+        }
+
+        if(this->food[gPos.gX][gPos.gY]==3){
+
+            if(food==75){
+                this->food[gPos.gX][gPos.gY] = 1;
+                food=100;
+            }else{
+                this->food[gPos.gX][gPos.gY] = 0;
+                food+=50;
+            }
+                
+        }else if(this->food[gPos.gX][gPos.gY]==1){
+            if(food==75){
+                this->food[gPos.gX][gPos.gY] = 0;
+                food=100;
+            }else{
+                this->food[gPos.gX][gPos.gY] = 0;
+                food+=25;
+            }
+        }
+
+        if(food>=100){
+            goto end;
+        }
+        --r;
+    }while(r>0);
 
 end:
 
