@@ -188,8 +188,8 @@ void sim::gloopDoYourThingy(){
 
     }
 }
-#define DEFAULT_FOODCHANCE 5
-#define DEFAULT_BONUSFOOD 20
+#ifndef DEFAULT_FOODCHANCE 5
+#ifndef DEFAULT_BONUSFOOD 20
 void sim::generateFood(){
     for (uint8_t i = 0; i < PLAYGROUND_SIZE_X; i++){
         for (uint8_t j = 0; j < PLAYGROUND_SIZE_Y; j++){
