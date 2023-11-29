@@ -35,8 +35,8 @@ class gloop{
 
         bool alive;
 
-        bool checkReplicationChance();
-        bool checkDeathChance(long);
+        bool checkReplicationChance(uint16_t);
+        bool checkDeathChance(uint16_t);
 
         uint32_t getSpecies();
 
@@ -97,7 +97,7 @@ gloop::gloop(const gloop& g){
     this->lifeSpan=g.lifeSpan;
     this->replicationChance=g.replicationChance;
     this->deathChance=g.deathChance;
-    this->mutationChance=g.mutationChance;
+    g.parentSpecies==0 ? this->mutationChance=DEFAULT_MCHANCE : this->mutationChance=g.mutationChance;
     this->species=g.species;
     this->parentSpecies=g.parentSpecies;
     this->gloopId=rand();
@@ -152,7 +152,7 @@ huh:
                     this->trait[1]<=(MAX_MOVRANGE-2) ? this->trait[1]+=1+(rand()%2) : this->trait[1]<=(MAX_MOVRANGE-1) ? this->trait[1]+=(rand()%2) : this->trait[1]=15;
                     break;
                 case 5: //Range of Vision 0-15
-                    this->trait[2]<=(MAX_RANGEOFVISION-2) ? this->trait[2]+=1+(rand()%2) : this->trait[2]<=(MAX_RANGEOFVISION-1) ? this->trait[1]+=(rand()%2) : this->trait[2]=15;
+                    this->trait[2]<=(MAX_RANGEOFVISION-2) ? this->trait[2]+=1+(rand()%2) : this->trait[2]<=(MAX_RANGEOFVISION-1) ? this->trait[2]+=(rand()%2) : this->trait[2]=15;
                     break;
                 case 6: //FoodBonus 0-15
                     this->trait[3]<=(MAX_FOODBONUS-2) ? this->trait[3]+=1+(rand()%2) : this->trait[3]<=(MAX_FOODBONUS-1) ? this->trait[3]+=(rand()%2) : this->trait[3]=15;
@@ -191,7 +191,7 @@ huh:
                     this->trait[1]>=(MIN_MOVRANGE+2) ? this->trait[1]-=(1+rand()%2) : this->trait[1]>=(MIN_MOVRANGE+1) ? this->trait[1]-=(rand()%2) : this->trait[1]=5;
                     break;
                 case 5: //Range of Vision 0-15
-                    this->trait[2]>=(MIN_RANGEOFVISION+2) ? this->trait[2]-=(1+rand()%2) : this->trait[2]>=(MIN_RANGEOFVISION+1) ? this->trait[1]-=(rand()%2) : this->trait[2]=0;
+                    this->trait[2]>=(MIN_RANGEOFVISION+2) ? this->trait[2]-=(1+rand()%2) : this->trait[2]>=(MIN_RANGEOFVISION+1) ? this->trait[2]-=(rand()%2) : this->trait[2]=0;
                     break;
                 case 6: //FoodBonus 0-15
                     this->trait[3]>=(MIN_FOODBONUS+2) ? this->trait[3]-=(1+rand()%2) : this->trait[3]>=(MIN_FOODBONUS+1) ? this->trait[3]-=(rand()%2) : this->trait[3]=0;
@@ -246,23 +246,26 @@ bool gloop::checkChance(uint8_t threshold){
     return (a<=threshold);
 }
 
-bool gloop::checkDeathChance(long gloops){
-    long oc;
+bool gloop::checkDeathChance(uint16_t gloops){
+    uint8_t oc;
     ENABLE_FIXED_ocCoef ? ( oc=gloops/DEFAULT_OCROWDCOEF_FIXED ) : oc=0;      
-    if(age==0){return false;}                           
-    if(oc>=100 || this->food==0){return true;}           
-    float dc=this->deathChance * (1+ (((float)(100-this->deathChance)/(this->deathChance))*((float)age/lifeSpan)));
-    if((dc>=100) || (dc+oc >= 100)){return true;}else{return this->checkChance(dc+oc);}
+    if(age==0){return false;}       
+    if(this->food==0){return true;}        
+    uint8_t dc= (uint8_t) 3.36 * (-2+expf(this->deathChance*(((float)this->age)/((this->lifeSpan)*10)))+expf(this->deathChance*(((float)(this->lifeSpan-this->age))/((this->lifeSpan)*10))));
+    if((oc>=100) ||(dc>=100) || (dc+oc >= 100)){return true;}else{return this->checkChance(dc+oc);}
 }
 
 #ifndef FOOD_THRESHOLD
     #define FOOD_THRESHOLD 75
 #endif
 
-bool gloop::checkReplicationChance(){
+bool gloop::checkReplicationChance(uint16_t gloops){
     float fP=0; 
+    if(this->age==0 || (float)gloops>.7*MAX_GLOOPS) return false;
     this->food >= FOOD_THRESHOLD ? fP=(float)this->trait[3]/100 : fP=-(float)this->trait[4]/100;
-    float rC = (this->replicationChance) * (1+fP);
+    float rC=(this->replicationChance) * (1+fP);
+    rC = (this->replicationChance) * (1+fP) * (log10f(1+ 9*((float)this->age)/(this->lifeSpan))); 
+    rC*=(1-(float)gloops/(.7*MAX_GLOOPS));
     return this->checkChance((uint8_t)rC);
 }
 
@@ -298,4 +301,4 @@ void gloop::nonono(){
     this->age++;
 }
 
-void gloop::yummi(){this->food=-DEFAULT_FOODCONSUMPTION;}
+void gloop::yummi(){this->food-=DEFAULT_FOODCONSUMPTION;}

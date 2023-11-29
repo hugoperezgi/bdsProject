@@ -28,6 +28,7 @@ bool sortDistances(const glpPos& f1, const glpPos& f2){
 
 class sim{
     private:
+        std::list<gloop> simGloops;
         std::list<std::list<gloop>> pGloop;
         std::list<std::list<gloop>>::iterator it_pGloop;
         std::list<gloop>::iterator it;
@@ -35,7 +36,7 @@ class sim{
         std::list<simulationReport> simReports;
         std::list<simulationReport>::iterator reportIt;
 
-        uint16_t gloopCount;
+        uint16_t gloopCount,dedGloopCount, ageGloopCount,starvedGloopCount;
         uint32_t simTime;
         uint8_t simId;
 
@@ -51,10 +52,16 @@ class sim{
         void generateFood();
         void goYum();
 
-        void getReport(uint8_t);
+        void getReport(uint16_t);
+        void sortBySpecies();
+        void getDetailedReport(uint16_t);
 
-        float a_rChance,a_dChance,a_mChance,a_lifeSpan,a_age,a_movRange,a_visionRange,a_foodBonus,a_foodDef;
+        float a_rChance,a_dChance,a_mChance,a_lifeSpan,a_movRange,a_visionRange,a_foodBonus,a_foodDef;
+        float a_age,a_DedAge;
+        float min_rChance,min_dChance,min_mChance,min_lifeSpan,min_age,min_movRange,min_visionRange,min_foodBonus,min_foodDef;
+        float max_rChance,max_dChance,max_mChance,max_lifeSpan,max_age,max_movRange,max_visionRange,max_foodBonus,max_foodDef;
         void avrgData();
+        void minmaxData();
 
     public:
         sim();
@@ -73,9 +80,7 @@ sim::sim(){
     
     gloop g;
     g.setRandomPosition();
-    std::list<gloop> sGloop;
-    sGloop.emplace_front(g);
-    pGloop.emplace(pGloop.begin(), sGloop);
+    this->simGloops.emplace_front(g);
     simId=0;
     gloopCount=1;
     
@@ -86,9 +91,7 @@ sim::sim(uint8_t id){
 
     gloop g;
     g.setRandomPosition();
-    std::list<gloop> sGloop;
-    sGloop.emplace_front(g);
-    pGloop.emplace(pGloop.begin(), sGloop);
+    this->simGloops.emplace_front(g);
     simId=id;
     gloopCount=1;
     
@@ -101,13 +104,21 @@ sim::~sim(){
 void sim::addMoreGloops(gloop parent){
 
     gloop g(parent.child());
+    this->simGloops.insert(it,g);
+}
 
-    for(std::list<std::list<gloop>>::iterator it_pGloop_checkSpecies = pGloop.begin(); it_pGloop_checkSpecies!=pGloop.end(); it_pGloop_checkSpecies++){
-        std::list<gloop>::iterator it_Gloop = (*it_pGloop_checkSpecies).begin();
-        if(g.getSpecies()==((*it_Gloop).getSpecies())){(*it_pGloop_checkSpecies).insert(it,g);return;}
+void sim::sortBySpecies(){
+    for(this->it=simGloops.begin(); this->it!=simGloops.end();this->it++){
+        for(this->it_pGloop = pGloop.begin(); this->it_pGloop!=pGloop.end(); this->it_pGloop++){
+            std::list<gloop>::iterator it_Gloop = (*it_pGloop).begin();
+            if((*it).getSpecies()==((*it_Gloop).getSpecies())){(*it_pGloop).emplace_back((*it));goto nextGloop;}
+        }
+        addNewSpecies((*it));    
+        nextGloop:
+        continue;
     }
 
-    addNewSpecies(g);
+
 }
  
 #ifndef precGLOOP_THRESHOLD
@@ -123,59 +134,74 @@ void sim::gloopSpawner(gloop g){
      
     if(r==1 || ((rand()%101)*(1+r) >= 100)){return;}
 
-    for(this->it_pGloop = pGloop.begin(); this->it_pGloop!=pGloop.end(); this->it_pGloop++){
-        this->it = (*this->it_pGloop).begin();
-        if(g.getSpecies()==((*this->it).getSpecies())){(*it_pGloop).emplace_back(g);return;}
-    }
-    addNewSpecies(g);
+    this->simGloops.emplace_back(g);
 }
 
 void sim::addNewSpecies(gloop g){
     std::list<gloop> sGloop;
     sGloop.emplace_front(g);
-    pGloop.insert(it_pGloop,sGloop);
+    pGloop.emplace_front(sGloop);
 }
 
 #ifndef REPORT_PERIOD
     #define REPORT_PERIOD 1000
 #endif
-
+#ifndef DETAILED_REPORT
+    #define DETAILED_REPORT true
+#endif
 void sim::runSimulation(uint32_t maxTime){
 
     gloop newSpawn;
     newSpawn.setRandomPosition();
+    
+    this->a_DedAge=0;
+    this->a_age=0;
+    this->dedGloopCount=0;
+    this->starvedGloopCount=0;
+    this->ageGloopCount=0;
+    uint8_t prc=0;
 
     do{
 
         this->generateFood();
 
-        for(this->it_pGloop = pGloop.begin(); it_pGloop!=pGloop.end(); this->it_pGloop++){
-            if((*it_pGloop).empty()){continue;}
-            for (this->it = (*it_pGloop).begin(); it!=(*it_pGloop).end(); this->it++){
+        simGloops.sort(randomizeGloopOrder);
 
-                this->gloopDoYourThingy();
+        for (this->it = simGloops.begin(); it!=simGloops.end(); this->it++){
 
-            }
-            (*it_pGloop).sort(randomizeGloopOrder);
+            this->gloopDoYourThingy();
+
         }
 
         this->removeded();
         this->updateCount();
 
+
+        gloopSpawner(newSpawn); 
+
+        
+        if(!DETAILED_REPORT && simTime%REPORT_PERIOD==0) this->getReport(simTime/REPORT_PERIOD);
+        if(DETAILED_REPORT && simTime%100==0){
+            this->a_age/=(float)this->ageGloopCount;
+            this->a_DedAge/=(float)this->dedGloopCount;
+            this->getDetailedReport(simTime/100);
+            this->a_age=0;
+            this->a_DedAge=0;
+            this->dedGloopCount=0;    
+            this->starvedGloopCount=0;
+            this->ageGloopCount=0;       
+        }
+
+        uint8_t tmp= (uint8_t) ((float)simTime/(maxTime-1) *100);
+        if(tmp!=prc || simTime==1) std::cout << std::to_string(tmp) << "%\n";
+        prc=tmp;
+
         if(this->gloopCount>MAX_GLOOPS){ 
             std::cout << "Max gloops reached, gloop count :" << std::to_string(gloopCount) << "\n";
-            break;}
-
-        gloopSpawner(newSpawn);
-
-        pGloop.sort(randomizeSpecies);
-        
-        float prc=(float)simTime/maxTime *100;
-        std::cout << std::to_string((int)prc) << "%\n";
+            break;
+        }
 
         simTime++;
-
-        if(simTime%REPORT_PERIOD==0) this->getReport(simTime/REPORT_PERIOD);
 
     }while(simTime!=maxTime);
 
@@ -183,22 +209,30 @@ void sim::runSimulation(uint32_t maxTime){
 
 void sim::gloopDoYourThingy(){
 
+    (*it).yummi(); //consume food
+
     if((*it).checkDeathChance(gloopCount)){
 
         (*it).kill(); //al pozo
         
+        if(DETAILED_REPORT && simTime%100==0){
+            this->a_DedAge+=(float)(*it).age;
+            (*it).getFoodLv()==0 ? this->starvedGloopCount++ : this->dedGloopCount++;
+        }
+        
     }else{
-
-        (*it).yummi(); //consume food
 
         this->goYum(); //look for food
 
-        if((*it).checkReplicationChance()){ //Replication
+        if((*it).checkReplicationChance(gloopCount)){ //Replication
             addMoreGloops((*it));
         }
 
         (*it).nonono();//Increase age of gloops
-
+        if(DETAILED_REPORT && simTime%100==0){
+            this->a_age+=(float)(*it).age;
+            this->ageGloopCount++;
+        }
 
     }
 }
@@ -213,7 +247,7 @@ void sim::generateFood(){
     for (uint8_t i = 0; i < PLAYGROUND_SIZE_X; i++){
         for (uint8_t j = 0; j < PLAYGROUND_SIZE_Y; j++){
 
-            (rand()%101 <= DEFAULT_FOODCHANCE) ? ( (rand()%101 <= DEFAULT_BONUSFOOD) ? food[i][j] = 3 : food[i][j] = 1 ) : food[i][j]=0;
+            (rand()%10001 <= DEFAULT_FOODCHANCE*100) ? ( (rand()%101 <= DEFAULT_BONUSFOOD) ? food[i][j] = 3 : food[i][j] = 1 ) : food[i][j]=0;
 
         }
     } 
@@ -223,6 +257,7 @@ std::string sim::getResults(){
 
     removeded();
     updateCount();
+    sortBySpecies();
 
     std::ofstream file;
     std::string fileName ="reports\\Report Simulation"+std::to_string((int)this->simId)+".txt";
@@ -257,10 +292,11 @@ std::string sim::getCompactResults(){
     return fileName;
 }
 
-void sim::getReport(uint8_t reportCount){ 
+void sim::getReport(uint16_t reportCount){ 
 
     removeded();
     updateCount();
+    sortBySpecies();
 
     simulationReport r;
     r.reportNO=reportCount;
@@ -283,20 +319,17 @@ void sim::getReport(uint8_t reportCount){
 }
 
 void sim::removeded(){
-    pGloop.remove_if(isLstEpty);
-    for(this->it_pGloop = pGloop.begin(); it_pGloop!=pGloop.end(); this->it_pGloop++){
-        (*it_pGloop).remove_if(isGloopDed);
-    }
+    simGloops.remove_if(isGloopDed);
 }
 
 void sim::updateCount(){
-    this->gloopCount=0;
-
-    for(this->it_pGloop = pGloop.begin(); this->it_pGloop!=pGloop.end(); this->it_pGloop++){
-        if((*it_pGloop).empty()){continue;}
-        std::list<gloop> ffs = (*it_pGloop);
-        this->gloopCount+=ffs.size();
-    }
+    // this->gloopCount=0;
+    this->gloopCount=this->simGloops.size();
+    // for(this->it_pGloop = pGloop.begin(); this->it_pGloop!=pGloop.end(); this->it_pGloop++){
+    //     if((*it_pGloop).empty()){continue;}
+    //     std::list<gloop> ffs = (*it_pGloop);
+    //     this->gloopCount+=ffs.size();
+    // }
 }
 
 void sim::goYum(){
@@ -576,12 +609,21 @@ std::string sim::getSimulationData(){
 void sim::avrgData(){
     uint16_t sz = pGloop.size();
 
+        this->a_age=0;
+        this->a_lifeSpan=0;
+        this->a_rChance=0;
+        this->a_dChance=0;
+        this->a_mChance=0;
+        this->a_visionRange=0;
+        this->a_movRange=0;
+        this->a_foodBonus=0;
+        this->a_foodDef=0;
+
     for(this->it_pGloop = pGloop.begin(); it_pGloop!=pGloop.end(); this->it_pGloop++){
         if((*it_pGloop).empty()){continue;}
         std::list<gloop> thisMakesNoFuckingSenseAndIDKWhy = (*it_pGloop);
         this->it = thisMakesNoFuckingSenseAndIDKWhy.begin();
         gloop shiet = (*this->it);
-        this->a_age+=(float)shiet.age/sz;
         this->a_lifeSpan+=(float)shiet.lifeSpan/sz;
         this->a_rChance+=(float)shiet.replicationChance/sz;
         this->a_dChance+=(float)shiet.deathChance/sz;
@@ -593,4 +635,87 @@ void sim::avrgData(){
     }
 
 
+}
+
+void sim::minmaxData(){
+
+    uint16_t sz = simGloops.size();
+
+    for(this->it=this->simGloops.begin();this->it!=this->simGloops.end();this->it++){
+
+        gloop shiet = (*this->it);
+
+        if(this->it == simGloops.begin()){
+            this->a_lifeSpan=0;
+            this->a_rChance=0;
+            this->a_dChance=0;
+            this->a_mChance=0;
+            this->a_visionRange=0;
+            this->a_movRange=0;
+            this->a_foodBonus=0;
+            this->a_foodDef=0;
+            this->min_lifeSpan=(float)shiet.lifeSpan;
+            this->min_rChance=(float)shiet.replicationChance;
+            this->min_dChance=(float)shiet.deathChance;
+            this->min_mChance=(float)shiet.mutationChance;
+            this->min_visionRange=(float)shiet.getRangeOfVision();
+            this->min_movRange=(float)shiet.getSpeed();
+            this->min_foodBonus=(float)shiet.getFoodBonus();
+            this->min_foodDef=(float)shiet.getFoodDef();
+            this->max_lifeSpan=(float)shiet.lifeSpan;
+            this->max_rChance=(float)shiet.replicationChance;
+            this->max_dChance=(float)shiet.deathChance;
+            this->max_mChance=(float)shiet.mutationChance;
+            this->max_visionRange=(float)shiet.getRangeOfVision();
+            this->max_movRange=(float)shiet.getSpeed();
+            this->max_foodBonus=(float)shiet.getFoodBonus();
+            this->max_foodDef=(float)shiet.getFoodDef();
+        }
+
+        this->a_lifeSpan+=(float)shiet.lifeSpan/sz;
+        if( this->max_lifeSpan<shiet.lifeSpan ) {this->max_lifeSpan=shiet.lifeSpan;}else if(this->min_lifeSpan>shiet.lifeSpan) {this->min_lifeSpan=shiet.lifeSpan;}
+        this->a_rChance+=(float)shiet.replicationChance/sz;
+        if(this->max_rChance<shiet.replicationChance)  {this->max_rChance=shiet.replicationChance;} else if(this->min_rChance>shiet.replicationChance) {this->min_rChance=shiet.replicationChance;}
+        this->a_dChance+=(float)shiet.deathChance/sz;
+        if (this->max_dChance<shiet.deathChance) { this->max_dChance=shiet.deathChance ;}else if(this->min_dChance>shiet.deathChance){ this->min_dChance=shiet.deathChance;}
+        this->a_mChance+=(float)shiet.mutationChance/sz;
+        if (this->max_mChance<shiet.mutationChance) { this->max_mChance=shiet.mutationChance ;}else if(this->min_mChance>shiet.mutationChance){ this->min_mChance=shiet.mutationChance;}
+        this->a_visionRange+=(float)shiet.getRangeOfVision()/sz;
+        if (this->max_visionRange<shiet.getRangeOfVision()) { this->max_visionRange=shiet.getRangeOfVision();} else if(this->min_visionRange>shiet.getRangeOfVision()) {this->min_visionRange=shiet.getRangeOfVision();}
+        this->a_movRange+=(float)shiet.getSpeed()/sz;
+        if (this->max_movRange<shiet.getSpeed()) { this->max_movRange=shiet.getSpeed();} else if(this->min_movRange>shiet.getSpeed()) {this->min_movRange=shiet.getSpeed();}
+        this->a_foodBonus+=(float)shiet.getFoodBonus()/sz;
+        if (this->max_foodBonus<shiet.getFoodBonus()) { this->max_foodBonus=shiet.getFoodBonus();} else if(this->min_foodBonus>shiet.getFoodBonus()) {this->min_foodBonus=shiet.getFoodBonus();}
+        this->a_foodDef+=(float)shiet.getFoodDef()/sz;
+        if (this->max_foodDef<shiet.getFoodDef()) { this->max_foodDef=shiet.getFoodDef();} else if(this->min_foodDef>shiet.getFoodDef()) {this->min_foodDef=shiet.getFoodDef();}
+
+    }
+
+}
+
+void sim::getDetailedReport(uint16_t reportCount){ 
+
+    removeded();
+    updateCount();
+
+    minmaxData();
+
+    std::ofstream file;
+    std::string fileName ="reports\\formatted_Simulation"+std::to_string((int)this->simId)+"_Data.txt";
+    reportCount == 1 ? file.open(fileName) : file.open(fileName, std::fstream::out | std::fstream::app);
+
+    if(reportCount==1) file << "Iterations,GloopCountTotal,Average_LifeSpan,Max_LifeSpan,Min_LifeSpan,Average_Replication%,Max_Replication%,Min_Replication%,Average_Death%,Max_Death%,Min_Death%,Average_Mutation%,Max_Mutation%,Min_Mutation%,Average_VisionRange,Max_VisionRange,Min_VisionRange,Average_MovementRange,Max_MovementRange,Min_MovementRange,Average_FoodBonus%,Max_FoodBonus%,Min_FoodBonus%,Average_FoodDeficit%,Max_FoodDeficit%,Min_FoodDeficit%,Average_Age,Average_DeathAge,Starved_gloops\n";
+                            
+    file <<std::to_string(reportCount)<<","<<this->gloopCount<<","
+         <<this->a_lifeSpan<<","<<this->max_lifeSpan<<","<<this->min_lifeSpan<<","
+         <<this->a_rChance<<","<<this->max_rChance<<","<<this->min_rChance<<","
+         <<this->a_dChance<<","<<this->max_dChance<<","<<this->min_dChance<<","
+         <<this->a_mChance<<","<<this->max_mChance<<","<<this->min_mChance<<","
+         <<this->a_visionRange<<","<<this->max_visionRange<<","<<this->min_visionRange<<","
+         <<this->a_movRange<<","<<this->max_movRange<<","<<this->min_movRange<<","
+         <<this->a_foodBonus<<","<<this->max_foodBonus<<","<<this->min_foodBonus<<","
+         <<this->a_foodDef<<","<<this->max_foodDef<<","<<this->min_foodDef<<","
+         <<this->a_age<<","<<this->a_DedAge<<","<<this->starvedGloopCount<<"\n";
+
+    file.close();
 }
