@@ -11,7 +11,6 @@ class gloop{
         
         uint8_t energy, food; 
 
-        //Aggresivity {0-100}
         //Speed {5-15}
         //Range of vision
         //Food Bonus
@@ -160,7 +159,7 @@ huh:
                 case 7: //HungerDeficit 0-15
                     this->trait[4]<=(MAX_HUNGERDEF-2) ? this->trait[4]+=1+(rand()%2) : this->trait[4]<=(MAX_HUNGERDEF-1) ? this->trait[4]+=(rand()%2) : this->trait[4]=15;
                     break;
-            }//TODO fuck my life
+            }
 
             if(rand()%2==0) goto huh;
 

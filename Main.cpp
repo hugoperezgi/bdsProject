@@ -35,14 +35,14 @@ int main(int argc, char const *argv[]){
     if (argc == 2){ // threads iterations
         std::string input = argv[1];
         if(strtod(argv[1],NULL)>255){
-            std::cout << "Fuck no\n";
+            std::cout << "Too many threads. Please dont.\n";
             return -1;
         }
         threadCount = (uint8_t) strtod(argv[1],NULL);
     }else if( argc==3 ){
         std::string input = argv[1];
         if(strtod(argv[1],NULL)>255){
-            std::cout << "Fuck no\n";
+            std::cout << "Too many threads. Please dont.\n";
             return -1;
         }
         threadCount = (uint8_t) strtod(argv[1],NULL);
@@ -50,7 +50,7 @@ int main(int argc, char const *argv[]){
     }else if( argc==1 ){
         threadCount=1;
     }else{
-        std::cout << "Too many arguments, I break :c\n";
+        std::cout << "Too many arguments, I break (¬_¬)\n";
         return -1;
     }
 

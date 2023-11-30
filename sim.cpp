@@ -6,11 +6,6 @@
 #include <list>
 #include "simulationReport.cpp"
 
-// bool ffs(gloop g){
-//     gloop* f = &g;
-//     return gloop::isGloopDed(f);
-// }
-
 bool isGloopDed (const gloop& g) { return (!g.alive); }
 bool randomizeGloopOrder(const gloop& g, const gloop& o){return (g.gloopId <= o.gloopId);}
 bool isLstEpty(const std::list<gloop> l){ return l.empty();}
@@ -279,6 +274,7 @@ std::string sim::getResults(){
 }
 
 std::string sim::getCompactResults(){
+    if(DETAILED_REPORT) return "Nope";
     std::ofstream file;
     std::string fileName ="reports\\cSimulation"+std::to_string((int)this->simId)+".txt";
     file.open(fileName);
@@ -323,13 +319,7 @@ void sim::removeded(){
 }
 
 void sim::updateCount(){
-    // this->gloopCount=0;
     this->gloopCount=this->simGloops.size();
-    // for(this->it_pGloop = pGloop.begin(); this->it_pGloop!=pGloop.end(); this->it_pGloop++){
-    //     if((*it_pGloop).empty()){continue;}
-    //     std::list<gloop> ffs = (*it_pGloop);
-    //     this->gloopCount+=ffs.size();
-    // }
 }
 
 void sim::goYum(){
