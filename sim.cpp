@@ -108,7 +108,7 @@ void sim::addMoreGloops(gloop parent){
 }
 
 void sim::sortBySpecies(){
-    for(this->it=simGloops.begin(); this->it!=simGloops.end();this->it++){
+    for(this->it=simGloops.begin(); this->it!=this->simGloops.end();this->it++){
         for(this->it_pGloop = pGloop.begin(); this->it_pGloop!=pGloop.end(); this->it_pGloop++){
             std::list<gloop>::iterator it_Gloop = (*it_pGloop).begin();
             if((*it).getSpecies()==((*it_Gloop).getSpecies())){(*it_pGloop).emplace_back((*it));goto nextGloop;}
@@ -140,7 +140,7 @@ void sim::gloopSpawner(gloop g){
 void sim::addNewSpecies(gloop g){
     std::list<gloop> sGloop;
     sGloop.emplace_front(g);
-    pGloop.emplace_front(sGloop);
+    this->pGloop.emplace_front(sGloop);
 }
 
 #ifndef REPORT_PERIOD
@@ -319,7 +319,7 @@ void sim::getReport(uint16_t reportCount){
 }
 
 void sim::removeded(){
-    simGloops.remove_if(isGloopDed);
+    this->simGloops.remove_if(isGloopDed);
 }
 
 void sim::updateCount(){
@@ -607,7 +607,7 @@ std::string sim::getSimulationData(){
 }
 
 void sim::avrgData(){
-    uint16_t sz = pGloop.size();
+    uint16_t sz = this->pGloop.size();
 
         this->a_age=0;
         this->a_lifeSpan=0;
@@ -619,9 +619,9 @@ void sim::avrgData(){
         this->a_foodBonus=0;
         this->a_foodDef=0;
 
-    for(this->it_pGloop = pGloop.begin(); it_pGloop!=pGloop.end(); this->it_pGloop++){
-        if((*it_pGloop).empty()){continue;}
-        std::list<gloop> thisMakesNoFuckingSenseAndIDKWhy = (*it_pGloop);
+    for(this->it_pGloop = pGloop.begin(); this->it_pGloop!=pGloop.end(); this->it_pGloop++){
+        if((*this->it_pGloop).empty()){continue;}
+        std::list<gloop> thisMakesNoFuckingSenseAndIDKWhy = (*this->it_pGloop);
         this->it = thisMakesNoFuckingSenseAndIDKWhy.begin();
         gloop shiet = (*this->it);
         this->a_lifeSpan+=(float)shiet.lifeSpan/sz;
@@ -639,13 +639,13 @@ void sim::avrgData(){
 
 void sim::minmaxData(){
 
-    uint16_t sz = simGloops.size();
+    uint16_t sz = this->simGloops.size();
 
     for(this->it=this->simGloops.begin();this->it!=this->simGloops.end();this->it++){
 
         gloop shiet = (*this->it);
 
-        if(this->it == simGloops.begin()){
+        if(this->it == this->simGloops.begin()){
             this->a_lifeSpan=0;
             this->a_rChance=0;
             this->a_dChance=0;
@@ -716,6 +716,6 @@ void sim::getDetailedReport(uint16_t reportCount){
          <<this->a_foodBonus<<","<<this->max_foodBonus<<","<<this->min_foodBonus<<","
          <<this->a_foodDef<<","<<this->max_foodDef<<","<<this->min_foodDef<<","
          <<this->a_age<<","<<this->a_DedAge<<","<<this->starvedGloopCount<<"\n";
-
+    
     file.close();
 }

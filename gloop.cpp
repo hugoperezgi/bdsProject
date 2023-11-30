@@ -252,7 +252,7 @@ bool gloop::checkDeathChance(uint16_t gloops){
     if(age==0){return false;}       
     if(this->food==0){return true;}        
     uint8_t dc= (uint8_t) 3.36 * (-2+expf(this->deathChance*(((float)this->age)/((this->lifeSpan)*10)))+expf(this->deathChance*(((float)(this->lifeSpan-this->age))/((this->lifeSpan)*10))));
-    if((oc>=100) ||(dc>=100) || (dc+oc >= 100)){return true;}else{return this->checkChance(dc+oc);}
+    if((oc>=100) || (dc>=100) || (dc+oc >= 100)){return true;}else{return this->checkChance(dc+oc);}
 }
 
 #ifndef FOOD_THRESHOLD
@@ -265,7 +265,7 @@ bool gloop::checkReplicationChance(uint16_t gloops){
     this->food >= FOOD_THRESHOLD ? fP=(float)this->trait[3]/100 : fP=-(float)this->trait[4]/100;
     float rC=(this->replicationChance) * (1+fP);
     rC = (this->replicationChance) * (1+fP) * (log10f(1+ 9*((float)this->age)/(this->lifeSpan))); 
-    rC*=(1-(float)gloops/(.7*MAX_GLOOPS));
+    rC*=(1-(float)gloops/(.95*MAX_GLOOPS));
     return this->checkChance((uint8_t)rC);
 }
 
