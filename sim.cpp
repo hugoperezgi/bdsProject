@@ -123,6 +123,7 @@ void sim::sortBySpecies(){
 void sim::gloopSpawner(gloop g){
 
     g.setRandomPosition();
+    g.setRandomId();
 
     float r;
     this->gloopCount>precGLOOP_THRESHOLD ? r=1 : r = ((float)this->gloopCount/(2*precGLOOP_THRESHOLD));
@@ -162,24 +163,18 @@ void sim::runSimulation(uint32_t maxTime){
 
         simGloops.sort(randomizeGloopOrder);
 
-        for (this->it = simGloops.begin(); it!=simGloops.end(); this->it++){
-
-            this->gloopDoYourThingy();
-
-        }
+        for (this->it = simGloops.begin(); it!=simGloops.end(); this->it++){ this->gloopDoYourThingy(); }
 
         this->removeded();
         this->updateCount();
 
-
         gloopSpawner(newSpawn); 
-
         
         if(!DETAILED_REPORT && simTime%REPORT_PERIOD==0) this->getReport(simTime/REPORT_PERIOD);
-        if(DETAILED_REPORT && simTime%100==0){
+        if(DETAILED_REPORT && simTime%200==0){
             this->a_age/=(float)this->ageGloopCount;
             this->a_DedAge/=(float)this->dedGloopCount;
-            this->getDetailedReport(simTime/100);
+            this->getDetailedReport(simTime/200);
             this->a_age=0;
             this->a_DedAge=0;
             this->dedGloopCount=0;    
@@ -210,7 +205,7 @@ void sim::gloopDoYourThingy(){
 
         (*it).kill(); //al pozo
         
-        if(DETAILED_REPORT && simTime%100==0){
+        if(DETAILED_REPORT && simTime%200==0){
             this->a_DedAge+=(float)(*it).age;
             (*it).getFoodLv()==0 ? this->starvedGloopCount++ : this->dedGloopCount++;
         }
@@ -224,7 +219,7 @@ void sim::gloopDoYourThingy(){
         }
 
         (*it).nonono();//Increase age of gloops
-        if(DETAILED_REPORT && simTime%100==0){
+        if(DETAILED_REPORT && simTime%200==0){
             this->a_age+=(float)(*it).age;
             this->ageGloopCount++;
         }
@@ -255,7 +250,7 @@ std::string sim::getResults(){
     sortBySpecies();
 
     std::ofstream file;
-    std::string fileName ="reports\\Report Simulation"+std::to_string((int)this->simId)+".txt";
+    std::string fileName ="reportsLowFood2\\Report Simulation"+std::to_string((int)this->simId)+".txt";
     file.open(fileName);
     file << "Simulation number "<< std::to_string((int)this->simId) <<"\n";
     file << "Total Species count: "<< std::to_string(gloop::speciesCount) << " Remaining species count: " << pGloop.size() << " Gloop count: "<< std::to_string((int)this->gloopCount) << "\n";
@@ -276,7 +271,7 @@ std::string sim::getResults(){
 std::string sim::getCompactResults(){
     if(DETAILED_REPORT) return "Nope";
     std::ofstream file;
-    std::string fileName ="reports\\cSimulation"+std::to_string((int)this->simId)+".txt";
+    std::string fileName ="reportsLowFood2\\cSimulation"+std::to_string((int)this->simId)+".txt";
     file.open(fileName);
     file << "[gloopCountSpecies]::[speciesId::parentSpeciesId::lifeSpan::replicationChance::deathChance::mutationChance::0::speed::rangeOfVision::foodBonus::hungerDeficit]\n";
     for(this->reportIt = simReports.begin(); this->reportIt!=simReports.end(); this->reportIt++){
@@ -358,53 +353,6 @@ void sim::goYum(){
     }
 
 
-    if(rFood1.empty() && rFood3.empty()){
-        do{
-
-            switch(rand()%4){
-                case 0:
-                    gPos.gX == PLAYGROUND_SIZE_X ? gPos.gX-- : gPos.gX++;
-                    break;
-                case 1:
-                    gPos.gX == 0 ? gPos.gX++ : gPos.gX--;
-                    break;
-                case 2:
-                    gPos.gY == PLAYGROUND_SIZE_Y ? gPos.gY-- : gPos.gY++;
-                    break;
-                case 3:
-                    gPos.gY == 0 ? gPos.gY++ : gPos.gY--;
-                    break;
-            }
-
-            if(this->food[gPos.gX][gPos.gY]==3){
-
-                if(food==75){
-                    this->food[gPos.gX][gPos.gY] = 1;
-                    food=100;
-                }else{
-                    this->food[gPos.gX][gPos.gY] = 0;
-                    food+=50;
-                }
-                    
-            }else if(this->food[gPos.gX][gPos.gY]==1){
-                if(food==75){
-                    this->food[gPos.gX][gPos.gY] = 0;
-                    food=100;
-                }else{
-                    this->food[gPos.gX][gPos.gY] = 0;
-                    food+=25;
-                }
-            }
-
-            if(food>=100){
-                goto end;
-            }
-            --r;
-        }while(r>0);
-        goto end;
-    }
-    
-    
     if(rFood1.empty() && rFood3.empty()){
         do{
 
@@ -555,7 +503,7 @@ end:
 
 std::string sim::getSimulationData(){
     std::ofstream file;
-    std::string fileName ="reports\\simulation"+std::to_string((int)this->simId)+"_Data.txt";
+    std::string fileName ="reportsLowFood2\\simulation"+std::to_string((int)this->simId)+"_Data.txt";
     file.open(fileName);
 
     file << "Simulation "+std::to_string((int)this->simId)+" Data\n\n";
@@ -691,7 +639,7 @@ void sim::getDetailedReport(uint16_t reportCount){
     minmaxData();
 
     std::ofstream file;
-    std::string fileName ="reports\\formatted_Simulation"+std::to_string((int)this->simId)+"_Data.txt";
+    std::string fileName ="reportsLowFood2\\formatted_Simulation"+std::to_string((int)this->simId)+"_Data.txt";
     reportCount == 1 ? file.open(fileName) : file.open(fileName, std::fstream::out | std::fstream::app);
 
     if(reportCount==1) file << "Iterations,GloopCountTotal,Average_LifeSpan,Max_LifeSpan,Min_LifeSpan,Average_Replication%,Max_Replication%,Min_Replication%,Average_Death%,Max_Death%,Min_Death%,Average_Mutation%,Max_Mutation%,Min_Mutation%,Average_VisionRange,Max_VisionRange,Min_VisionRange,Average_MovementRange,Max_MovementRange,Min_MovementRange,Average_FoodBonus%,Max_FoodBonus%,Min_FoodBonus%,Average_FoodDeficit%,Max_FoodDeficit%,Min_FoodDeficit%,Average_Age,Average_DeathAge,Starved_gloops\n";

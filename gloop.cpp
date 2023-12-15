@@ -54,6 +54,7 @@ class gloop{
 
         void kill();
         void setRandomPosition();
+        void setRandomId();
         gloop child();
 
         std::string printSpeciesData();
@@ -91,8 +92,8 @@ gloop::gloop(){
 gloop::gloop(const gloop& g){
     this->alive=true;
     this->food=DEFAULT_FOOD;
-    this->energy=100;
-    this->age=0;
+    this->energy=g.energy;
+    this->age=g.age;
     this->lifeSpan=g.lifeSpan;
     this->replicationChance=g.replicationChance;
     this->deathChance=g.deathChance;
@@ -111,6 +112,8 @@ gloop::gloop(const gloop& g){
 gloop gloop::child(){
     gloop g(*this);
     if(g.mutate()){g.parentSpecies=this->species;}
+    g.age=0;
+    g.energy=100;
     return g;
 }
 
@@ -258,13 +261,17 @@ bool gloop::checkDeathChance(uint16_t gloops){
     #define FOOD_THRESHOLD 75
 #endif
 
+#ifndef LIMITED_REPLICATION
+    #define LIMITED_REPLICATION true
+#endif
+
 bool gloop::checkReplicationChance(uint16_t gloops){
     float fP=0; 
     if(this->age==0 || (float)gloops>.7*MAX_GLOOPS) return false;
     this->food >= FOOD_THRESHOLD ? fP=(float)this->trait[3]/100 : fP=-(float)this->trait[4]/100;
     float rC=(this->replicationChance) * (1+fP);
     rC = (this->replicationChance) * (1+fP) * (log10f(1+ 9*((float)this->age)/(this->lifeSpan))); 
-    rC*=(1-(float)gloops/(.95*MAX_GLOOPS));
+    if(LIMITED_REPLICATION) rC*=(1-(float)gloops/(.95*MAX_GLOOPS));
     return this->checkChance((uint8_t)rC);
 }
 
@@ -294,6 +301,10 @@ void gloop::setRandomPosition(){
     
     this->gloop_Coords=glpPos(rand()%(PLAYGROUND_SIZE_X+1),rand()%(PLAYGROUND_SIZE_Y+1));
 
+}
+
+void gloop::setRandomId(){
+    this->gloopId=rand();
 }
 
 void gloop::nonono(){

@@ -7,11 +7,12 @@ RRegex : Report.[0-9]* of sim.[0-9]*: Generated Species->.[0-9]* Species Alive->
 #define PLAYGROUND_SIZE_X 60
 #define PLAYGROUND_SIZE_Y 60
 #define MAX_GLOOPS (PLAYGROUND_SIZE_X*PLAYGROUND_SIZE_Y)/2
-#define DEFAULT_FOODCHANCE 10
+#define DEFAULT_FOODCHANCE 2
 #define DEFAULT_BONUSFOOD 5
 #define precGLOOP_THRESHOLD 20
 #define REPORT_PERIOD 1000
 #define DETAILED_REPORT true
+#define LIMITED_REPLICATION false
 
 //Gloop Stuff
 
