@@ -1,12 +1,18 @@
+/*
+RRegex : Report.[0-9]* of sim.[0-9]*: Generated Species->.[0-9]* Species Alive->.[0-9]* GloopCount->.[0-9]*
+*/
+
 //Field size, uint8_t max(255)
 
 #define PLAYGROUND_SIZE_X 60
 #define PLAYGROUND_SIZE_Y 60
 #define MAX_GLOOPS (PLAYGROUND_SIZE_X*PLAYGROUND_SIZE_Y)/2
-#define DEFAULT_FOODCHANCE 5
-#define DEFAULT_BONUSFOOD 20
+#define DEFAULT_FOODCHANCE 2
+#define DEFAULT_BONUSFOOD 5
 #define precGLOOP_THRESHOLD 20
 #define REPORT_PERIOD 1000
+#define DETAILED_REPORT true
+#define LIMITED_REPLICATION false
 
 //Gloop Stuff
 
@@ -15,8 +21,8 @@
 #define FOOD_THRESHOLD 75
 #define DEFAULT_LIFESPAN 50
 #define DEFAULT_MAXLIFESPAN 75
-#define DEFAULT_OCROWDCOEF_FIXED 60
-#define ENABLE_FIXED_ocCoef true
+#define DEFAULT_OCROWDCOEF_FIXED 120
+#define ENABLE_FIXED_ocCoef false
 
 //Gloop Replication Params
 
